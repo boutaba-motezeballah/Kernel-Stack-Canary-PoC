@@ -1,37 +1,32 @@
-# Boutaba-Kernel-Stack-Canary-PoC v1.0
+# Stack Canary Mitigations (PoC)
 
 ## Overview
-**Boutaba-Kernel-Stack-Canary-PoC** is a low-level microarchitectural mitigation utility engineered in **Pure x86_64 Assembly** for Linux systems. The project serves as a safe Proof-of-Concept (PoC) illustrating custom Stack Canary injection and verification algorithms to proactively defend software runtimes against buffer overflow and stack-smashing exploits without relying on compiler-generated extensions.
+This repository contains a low-level Proof-of-Concept (PoC) implemented in **pure x86_64 Assembly** to demonstrate the mechanics of **Stack Canary** protection. It simulates how modern compilers and operating systems inject guard tokens into the stack frame to detect and mitigate buffer overflow vulnerabilities before execution flow subversion can occur.
 
----
+> **Note:** This project serves as a localized microarchitectural simulation to study memory mitigation strategies and structured execution safety.
 
-## Architecture & Structural Execution Flow
+## How it Works
+The program establishes a protected stack frame by executing a simple validation sequence:
+1. **Token Injection:** During function initialization, a specific hexadecimal token (the "Canary") is placed right before the return address on the stack.
+2. **Buffer Simulation:** The program executes memory operations that safely simulate a standard buffer input layer.
+3. **Integrity Validation:** Before the function epilogue pops the instruction pointer, the local token is compared against the master reference.
+4. **Forensic Interception:** If the values mismatch (indicating memory corruption or an ongoing overflow attempt), the application aborts immediately with an error log to prevent execution redirection.
 
-The framework allocates a cryptographic sentinel token (Canary) directly on the local stack frame during initialization. Before returning from the active routine, the architecture re-evaluates the integrity of the token via hardware-level registers.
+## Compilation and Assembly
+To test and analyze this assembly implementation natively on Linux:
 
-```mermaid
-graph TD
-    A[Function Prologue] --> B[Allocate Local Stack Frame]
-    B --> C[Inject SECRET_CANARY at rbp-8]
-    C --> D[Execute Local Payload Execution]
-    D --> E[Function Epilogue Auditing]
-    E --> F{Verify: Current Stack value == SECRET_CANARY?}
-    F -->|True: Integrity Verified| G[Syscall 1: Print Safe Status]
-    F -->|False: Attack Detected| H[Trigger Stack Smashing Defensive Routine]
-    G --> I[Syscall 60: Exit Code 0]
-    H --> J[Syscall 60: Core Dump Exit Code 139]
+```bash
+# Assemble the source layout
+nasm -f elf64 clock_verifier.asm -o stack_canary.o
 
-    style A fill:#1f1f1f,stroke:#333,stroke-width:2px,color:#fff
-    style C fill:#0052cc,stroke:#333,stroke-width:2px,color:#fff
-    style F fill:#ff5555,stroke:#333,stroke-width:2px,color:#fff
-    style G fill:#00875a,stroke:#333,stroke-width:2px,color:#fff
-    style H fill:#de350b,stroke:#333,stroke-width:2px,color:#fff
+# Link the object module into a static binary
+ld stack_canary.o -o canary_verifier
+
+# Run the mitigation binary
+./canary_verifier
 ```
 
-## Specifications
-- **Language:** Pure Assembly (x86_64 ASM 100.0%)
-- **Target Subsystem:** Ring 3 Process Space interacting with Linux Kernel ABI.
-- **Security Scope:** Anti-Exploitation, Memory Integrity Protection.
-
----
-*Developed and maintained by **Boutaba Motezeballah** — Systems Architect & Reverse Engineer.*
+## Security Scope
+- Buffer Overflow Analysis & Mitigation Mechanics.
+- Stack Frame Layout Auditing (x86_64 Calling Conventions).
+- Memory Smashing Protections (SSP).
